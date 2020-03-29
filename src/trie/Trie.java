@@ -67,7 +67,7 @@ public class Trie {
 		node.words.add(s);
 	}
 
-	public Set<String> getWords(char c) {
+	public Set<String> get(char c) {
 		return root.childs.get(c) == null ? null : root.childs.get(c).words;
 	}
 
