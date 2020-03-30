@@ -1,7 +1,6 @@
 package trie;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -67,6 +66,7 @@ public class Trie {
 		node.words.add(s);
 	}
 
+	// To get all words by starting character
 	public Set<String> get(char c) {
 		return root.childs.get(c) == null ? null : root.childs.get(c).words;
 	}
@@ -91,11 +91,14 @@ public class Trie {
 		return current.isEnd;
 	}
 
-	public Set<String> subSquence(String s, int beginIndex) {
-		return subSquence(s.toCharArray(), beginIndex);
+	public Set<String> subSequence(String s, int beginIndex) {
+		return subSequence(s.toCharArray(), beginIndex);
 	}
 
-	public Set<String> subSquence(char[] c, int beginIndex) {
+	// returns all matching sequence from begin index
+	// for a string - catsanddog and beginIndex = 0
+	// returns [cat, cats]
+	public Set<String> subSequence(char[] c, int beginIndex) {
 
 		Set<String> words = new HashSet<>(c.length);
 		StringBuffer b = new StringBuffer();
@@ -114,19 +117,8 @@ public class Trie {
 		return words;
 	}
 
-	/**
-	 * @param s = catsanddog
-	 * @return [cats and dog, cat sand dog]
-	 */
-	public List<String> splitAndCombinations(String s) {
-		List<String> resp = new ArrayList<>(s.length());
-		Map<Integer, Set<String>> cache = new HashMap<>(s.length());
-		return splitAndCombinations(s.toCharArray(), 0, new LinkedHashSet<>(s.length()), resp, cache,
-				new Boolean(false));
-	}
-
-	// To maintain duplicates
-	// To optimize add and remove operation
+	// To maintain duplicates in set
+	// To optimize add and remove operation by using Set
 	static class Element {
 		String s;
 
@@ -140,45 +132,69 @@ public class Trie {
 		}
 	}
 
-	private List<String> splitAndCombinations(char[] ch, int i, Set<Element> l, List<String> resp,
-			Map<Integer, Set<String>> cache, Boolean exitFlag) {
-
-		if (ch.length == 0)
-			return resp;
-
-		if (i >= ch.length) {
-			StringBuffer b = new StringBuffer();
-			for (Element _e : l) {
-				b.append(_e.s + " ");
-			}
-			b.setLength(b.length() - 1);
-			resp.add(b.toString());
-			return resp;
-		}
-
-		Set<String> words = cache.getOrDefault(i, null);
-		if (words == null) {
-			words = subSquence(ch, i);
-			// check if no word in Trie
-			// Then the dictionary doesn't have all words
-			if (words.size() == 0) {
-				exitFlag = true;
-				return resp;
-			}
-			cache.put(i, words);
-		}
-
-		for (String s : words) {
-
-			Element e = new Element(s);
-			l.add(e);
-			splitAndCombinations(ch, i + s.length(), l, resp, cache, exitFlag);
-			if (exitFlag)
-				return resp;
-			l.remove(e);
+	/**
+	 * @param s = catsanddog
+	 * @return [cats and dog, cat sand dog]
+	 */
+	public List<String> splitAndCombinations(String s) {
+		Map<Integer, Set<Element>> cache = new HashMap<>(s.length());
+		splitAndCombinations(s.toCharArray(), 0, new LinkedHashSet<>(s.length()), cache);
+		List<String> resp = new ArrayList<>();
+		Set<Element> se = cache.get(0);
+		for (Element e : se) {
+			resp.add(e.s);
 		}
 
 		return resp;
+	}
+
+	// O(n2) in worst case
+	private void splitAndCombinations(char[] ch, int i, Set<Element> l, Map<Integer, Set<Element>> cache) {
+
+		if (ch.length == 0 || i >= ch.length) {
+			if (i == ch.length) {
+				Set<Element> se = new LinkedHashSet<>();
+				se.add(new Element(""));
+				cache.put(i, se);
+			}
+
+			return;
+		}
+		if (cache.containsKey(i))
+			return;
+
+		Set<String> words = subSequence(ch, i);
+		Set<Element> se = new LinkedHashSet<>();
+		for (String s : words) {
+			// Check if next combination exists in cache
+			Set<Element> set = cache.get(i + s.length());
+			if (set != null) {
+				// compute current combination
+				for (Element _e : set) {
+					Element ne = new Element(_e.s == "" ? s : s + " " + _e.s);
+					se.add(ne);
+				}
+
+			} else {
+
+				Element e = new Element(s);
+				l.add(e);
+				splitAndCombinations(ch, i + s.length(), l, cache);
+				// Since we compute the next combination
+				// now compute current combination
+				set = cache.get(i + s.length());
+				if (set != null) {
+					for (Element _e : set) {
+						Element ne = new Element(_e.s == "" ? s : s + " " + _e.s);
+						se.add(ne);
+					}
+
+				}
+				l.remove(e);
+			}
+		}
+		cache.put(i, se);
+
 	}
 
 	public void print() {
